@@ -29,49 +29,45 @@ def gen_test_data():
 
 
 def givens_rotation(a, b):
-    if b == 0:
-        c = np.sign(a)
+    c = a / np.sqrt(a * a + b * b)
+    s = b / np.sqrt(a * a + b * b)
 
-        if c == 0:
-            c = 1.0
-        s = 0
-        r = abs(a)
-    elif a == 0:
-        c = 0
-        s = np.sign(b)
-        r = abs(b)
-    elif abs(a) > abs(b):
+    if abs(a) > abs(b):
         t = b / a
-        u = np.sign(a) * np.sqrt(1 + t * t)
-        c = 1 / u
+        c = 1 / np.sqrt(1 + t * t)
         s = c * t
-        r = a * u
-    else:
-        t = a / b
-        u = np.sign(b) * np.sqrt(1 + t * t)
-        s = 1 / u
-        c = s * t
-        r = b * u
+    if abs(b) >= abs(a):
+        tau = a / b
+        c = s * tau
 
-    return c, s
+    return s, c
 
 
-def GM(i, j, c, s):
-    return 0
+def GM(p, q, st, ct, n, m):
+    shorter_side = max(n, m)
+    G = np.eye(shorter_side, shorter_side)
+    G[p][p] = ct
+    G[q][q] = ct
+    G[p][q] = -st
+    G[q][p] = st
+
+    return G
 
 
 def GQR(A):
     n = A.shape[0]
     m = A.shape[1]
-    Q = np.identity(n)
     R = A.copy()
+    Q = np.eye(n, m)
 
-    # for jdx in range(0, n):
-    #     for idx in range(m - 1, jdx + 1):
-    #         sin, cos = givens_rotation(R[idx - 1][jdx], R[idx][jdx])
-    #         G = GM(idx, jdx, sin, cos)
-    #         R = np.transpose(G) @ R
-    #         Q = Q @ G
+    for idx in range(0, m):
+        for jdx in range(idx + 1, n):
+            x = R[idx][idx]
+            y = R[jdx][idx]
+            st, ct = givens_rotation(x, y)
+            G = GM(jdx, jdx - 1, st, ct, n, m)
+            R = G @ R
+            Q = Q @ G.T
 
     return Q, R
 
@@ -92,6 +88,23 @@ def HQR(A):
 
 
 if __name__ == '__main__':
+
+    Am = np.array([
+        [0, 4, 3],
+        [-1, 2, 4],
+        [1, 0, 0],
+    ])
+
+    Am2 = np.array([
+        [0, -1, 1],
+        [4, 2, 0],
+        [3, 4, 0],
+    ])
+
+    GmQ, GmR = GQR(Am2)
+
+
+
     t = TicToc()
 
     householder_time = []
@@ -101,12 +114,6 @@ if __name__ == '__main__':
     householder_norms = []
     givens_norms = []
     numpy_norms = []
-
-    A_matrix = np.array([
-        [0.8147, 0.9058, 0.1270, 0.9134, 0.6324],
-        [0.0975, 0.2785, 0.5469, 0.9575, 0.9649],
-        [0.1576, 0.9706, 0.9572, 0.4854, 0.8003],
-    ])
 
     test_matrices = gen_test_data()
 
